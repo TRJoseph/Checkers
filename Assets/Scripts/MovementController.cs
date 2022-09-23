@@ -22,10 +22,32 @@ namespace Checkers.controller
             if (Input.GetMouseButtonDown(1) && confirmMove)
             {
                 Debug.Log("Moved");
+                getMoveSpot();
             }
         }
 
+        GameObject _selectedPiece = null;
         GameObject _selectedPieceHighLight = null;
+        
+
+        void getMoveSpot()
+        {
+            Vector2 worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+
+            RaycastHit2D hit = Physics2D.Raycast(worldPoint, Vector2.zero);
+            var _selectedMoveLocation = hit.collider.transform;
+            Debug.Log(_selectedMoveLocation.name);
+
+            int newX, newY;
+
+            newX = _selectedMoveLocation.name[5] - '0';
+            newY = _selectedMoveLocation.name[7] - '0';
+
+            // if move is valid, execute move, add check here
+
+            _selectedPiece.transform.position = new Vector2(newX, newY);
+            _selectedPieceHighLight.SetActive(false);
+        }
 
         void Clicked()
         {
@@ -46,6 +68,7 @@ namespace Checkers.controller
 
             if (hit.collider.name == "playerPiece(Clone)")
             {
+                _selectedPiece = hit.collider.transform.gameObject;
                 _selectedPieceHighLight = hit.collider.transform.GetChild(0).gameObject;
                 _selectedPieceHighLight.SetActive(true);
                 confirmMove = true;
