@@ -76,7 +76,6 @@ namespace Checkers.grid
             }
 
         }
-
         void generateGrid()
         {
             for (int x = 0; x < _width; x++) // width

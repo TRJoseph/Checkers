@@ -9,18 +9,24 @@ namespace Checkers.controller
     public class MovementController : MonoBehaviour
     {
         //GridManager gridManager;
-        //[SerializeField] private GameObject _selectedPieceHighLight;
+
+        [SerializeField] private GameObject _potentialMoveHighlight;
+
+        public List<GameObject> _highlightList;
 
         bool confirmMove = false;
+
         private void Update()
         {
             if (Input.GetMouseButtonDown(0))
             {
+                RemovePreviouslyAllowedMoves(); // removes the valid moves and the highlights displaying for them when de-selecting a piece or selecting a new piece
                 Clicked();
             }
 
             if (Input.GetMouseButtonDown(1) && confirmMove)
             {
+                RemovePreviouslyAllowedMoves();
                 Debug.Log("Moved");
                 getMoveSpot();
             }
@@ -36,7 +42,7 @@ namespace Checkers.controller
 
             RaycastHit2D hit = Physics2D.Raycast(worldPoint, Vector2.zero);
             var _selectedMoveLocation = hit.collider.transform;
-            Debug.Log(_selectedMoveLocation.name);
+            Debug.Log("move:" + _selectedMoveLocation.name);
 
             int newX, newY;
 
@@ -64,7 +70,6 @@ namespace Checkers.controller
             Vector2 worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
             RaycastHit2D hit = Physics2D.Raycast(worldPoint, Vector2.zero);
-            Debug.Log(hit);
 
             if (hit.collider.name == "playerPiece(Clone)")
             {
@@ -72,6 +77,7 @@ namespace Checkers.controller
                 _selectedPieceHighLight = hit.collider.transform.GetChild(0).gameObject;
                 _selectedPieceHighLight.SetActive(true);
                 confirmMove = true;
+                CalculateAllowedMoves(_selectedPiece, true);
 
             }
             else if (hit.collider.name == "enemyPiece(Clone)")
@@ -79,25 +85,63 @@ namespace Checkers.controller
                 _selectedPieceHighLight = hit.collider.transform.GetChild(0).gameObject;
                 _selectedPieceHighLight.SetActive(true);
             }
-            //CalculateAllowedMoves();
+            
         }
 
-        private void CheckifPieceisPresent(Vector2 currentPiecePos)// check each piece position on board to validate potential move
+        private bool CheckifPieceisPresent(Vector2 attemptedMove)// check each piece position on board to validate potential move
         {
-            for(int i = 0; i < GridManager._pieceList.Count; i++) 
+            RaycastHit2D hit;
+
+            hit = Physics2D.Raycast(attemptedMove, Vector2.down);
+
+            try
+            {
+                if (hit.transform.name == "playerPiece(Clone)" || hit.transform.name == "enemyPiece(Clone)") // remove enemypiece check from here maybe to do further move calculations
+                {
+                    return false;
+                }
+            }
+            catch (System.Exception) // if caught, move was off of board, making it invalid
             {
 
+                return false;
             }
+
+            return true;
         }
 
         private void CalculateAllowedMoves(GameObject piece, bool isPlayerPiece)
         {
             //Debug.Log(GridManager._pieceList);
-
+            var _allowedMoveList = new List<Vector2>();
             Vector2 currentPiecePos = piece.transform.position;
-            for(int i = 0; i< 3; i ++)
+
+            int counter = 0;
+            for(int i = -1; i < 2; i ++)
             {
-                CheckifPieceisPresent(currentPiecePos);
+                if(counter % 2 == 0) // skips invalid straight moves up one 1 value, not a valid checkers move
+                {
+                    Vector2 move = piece.transform.position;
+                    move.y = currentPiecePos.y + 1;
+                    move.x = move.x + i;
+                    if (CheckifPieceisPresent(move))
+                    {
+                        _allowedMoveList.Add(move);
+                        GameObject highlight = Instantiate(_selectedPieceHighLight, new Vector2(move.x, move.y), Quaternion.identity);
+                        _highlightList.Add(highlight);
+                    }
+
+                }
+                counter += 1;
+            }
+            //Debug.Log("allowed move:" + _allowedMoveList[0] + _allowedMoveList.Count);
+        }
+
+        private void RemovePreviouslyAllowedMoves()
+        {
+            for (int i = 0; i < _highlightList.Count; i++)
+            {
+                Destroy(_highlightList[i]);
             }
         }
 

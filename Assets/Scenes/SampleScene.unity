@@ -152,6 +152,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: adbb3411ab3f1524c871d6647c1f55a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _potentialMoveHighlight: {fileID: 3329079280049918716, guid: cb5ad2f5836270c458c35c525c194480, type: 3}
+  _highlightList: []
 --- !u!4 &71621705
 Transform:
   m_ObjectHideFlags: 0
