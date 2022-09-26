@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 3329079280049918713}
   - component: {fileID: 3329079280049918714}
-  - component: {fileID: 3329079280049918715}
+  - component: {fileID: -3655225529900116502}
   m_Layer: 0
-  m_Name: PotentialMoveHighLight
+  m_Name: potentialMoveHighlight
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -85,7 +85,7 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!61 &3329079280049918715
+--- !u!61 &-3655225529900116502
 BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

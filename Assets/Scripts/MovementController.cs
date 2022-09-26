@@ -26,9 +26,10 @@ namespace Checkers.controller
 
             if (Input.GetMouseButtonDown(1) && confirmMove)
             {
-                RemovePreviouslyAllowedMoves();
+                
                 Debug.Log("Moved");
                 getMoveSpot();
+                RemovePreviouslyAllowedMoves();
             }
         }
 
@@ -44,15 +45,18 @@ namespace Checkers.controller
             var _selectedMoveLocation = hit.collider.transform;
             Debug.Log("move:" + _selectedMoveLocation.name);
 
-            int newX, newY;
+            float newX, newY;
 
-            newX = _selectedMoveLocation.name[5] - '0';
-            newY = _selectedMoveLocation.name[7] - '0';
+            newX = _selectedMoveLocation.position.x;
+            newY = _selectedMoveLocation.position.y;
 
             // if move is valid, execute move, add check here
+            if(_selectedMoveLocation.name == "potentialMoveHighlight(Clone)")
+            {
+                _selectedPiece.transform.position = new Vector2(newX, newY);
+                _selectedPieceHighLight.SetActive(false);
+            }
 
-            _selectedPiece.transform.position = new Vector2(newX, newY);
-            _selectedPieceHighLight.SetActive(false);
         }
 
         void Clicked()
@@ -82,13 +86,16 @@ namespace Checkers.controller
             }
             else if (hit.collider.name == "enemyPiece(Clone)")
             {
+                _selectedPiece = hit.collider.transform.gameObject;
                 _selectedPieceHighLight = hit.collider.transform.GetChild(0).gameObject;
                 _selectedPieceHighLight.SetActive(true);
+                confirmMove = true;
+                CalculateAllowedMoves(_selectedPiece, false);
             }
             
         }
 
-        private bool CheckifPieceisPresent(Vector2 attemptedMove)// check each piece position on board to validate potential move
+        private bool CheckifPieceisPresent(Vector2 attemptedMove) // check each piece position on board to validate potential move
         {
             RaycastHit2D hit;
 
@@ -122,13 +129,21 @@ namespace Checkers.controller
                 if(counter % 2 == 0) // skips invalid straight moves up one 1 value, not a valid checkers move
                 {
                     Vector2 move = piece.transform.position;
-                    move.y = currentPiecePos.y + 1;
-                    move.x = move.x + i;
+                    if(isPlayerPiece)
+                    {
+                        move.y = currentPiecePos.y + 1;
+                        move.x = move.x + i;
+                    }
+                    else
+                    {
+                        move.y = currentPiecePos.y - 1;
+                        move.x = move.x + i;
+                    }
                     if (CheckifPieceisPresent(move))
                     {
                         _allowedMoveList.Add(move);
-                        GameObject highlight = Instantiate(_selectedPieceHighLight, new Vector2(move.x, move.y), Quaternion.identity);
-                        _highlightList.Add(highlight);
+                        GameObject potentialMoveHighlight = Instantiate(_potentialMoveHighlight, new Vector2(move.x, move.y), Quaternion.identity);
+                        _highlightList.Add(potentialMoveHighlight);
                     }
 
                 }
@@ -142,7 +157,9 @@ namespace Checkers.controller
             for (int i = 0; i < _highlightList.Count; i++)
             {
                 Destroy(_highlightList[i]);
+
             }
+            _highlightList.RemoveAll(x => x);
         }
 
     }
