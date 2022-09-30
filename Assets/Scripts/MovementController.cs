@@ -85,9 +85,9 @@ namespace Checkers.controller
             {
                 _selectedPiece.transform.position = new Vector2(newX, newY);
                 _selectedPieceHighLight.SetActive(false);
+                swapTurns();
             }
 
-            swapTurns();
             removeEnemyPieces(_selectedMoveLocation);
 
         }

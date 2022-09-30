@@ -34,8 +34,8 @@ namespace Checkers.grid
             /* fenstring determines position of pieces on the board, 'P' for player piece, x number skips x amount of spaces to the right, 'p'
              * for enemy piece. This is very helpful for testing as it allows me to position the pieces on the board to test certain edge cases
              more efficiently */
-            string fenString = "P1P1P1P1/1P1P1P1P/P1P1P1P1///1p1p1p1p/p1p1p1p1/1p1p1p1p";
-            //string fenString = "P1P1P1P1/1P1P1p1P/P1P3P/3p//1p1p1p1p/2p3p1/1p1p1p1p";
+            //string fenString = "P1P1P1P1/1P1P1P1P/P1P1P1P1///1p1p1p1p/p1p1p1p1/1p1p1p1p";
+            string fenString = "P1P1P1P1/1P1P1p1P/P1P3P/3p//1p1p1p1p/2p3p1/1p1p1p1p";
 
             _pieceList = new List<GameObject>();
 
