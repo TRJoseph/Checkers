@@ -242,7 +242,7 @@ namespace Checkers.controller
             {
                 if (hit.transform.name == "enemyPiece(Clone)")
                 {
-                    return (true, hit.transform.gameObject, false);
+                    return (false, hit.transform.gameObject, false);
 
                 }
                 else if (hit.transform.name == "playerPiece(Clone)")
