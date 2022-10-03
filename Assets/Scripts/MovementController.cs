@@ -86,6 +86,10 @@ namespace Checkers.controller
                 _selectedPiece.transform.position = new Vector2(newX, newY);
                 _selectedPieceHighLight.SetActive(false);
                 swapTurns();
+                if (newY == 7 || newY == 0) // sets queen piece if reached other side
+                {
+                    _selectedPiece.transform.GetChild(1).gameObject.SetActive(true);
+                }
             }
 
             removeEnemyPieces(_selectedMoveLocation);
@@ -116,8 +120,9 @@ namespace Checkers.controller
 
                 confirmMove = true;
                 pathnum = 0;
-                CalculateAllowedMoves(_selectedPiece, true, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y);
-
+                var isQueenPiece = false;
+                CalculateAllowedMoves(_selectedPiece, true, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y, isQueenPiece);
+                
             }
             else if (hit.collider.name == "enemyPiece(Clone)" && !isBlackTurn)
             {
@@ -127,7 +132,9 @@ namespace Checkers.controller
 
                 confirmMove = true;
                 pathnum = 0;
-                CalculateAllowedMovesForEnemyPiece(_selectedPiece, false, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y);
+                var isQueenPiece = false;
+                CalculateAllowedMovesForEnemyPiece(_selectedPiece, false, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y, isQueenPiece);
+                
             }
             
         }
@@ -164,12 +171,11 @@ namespace Checkers.controller
         }
 
         int counter = 0;
-        private void CalculateAllowedMoves(GameObject piece, bool isPlayerPiece, bool hitEnemyPiece, float currentX, float currentY)
+        private void CalculateAllowedMoves(GameObject piece, bool isPlayerPiece, bool hitEnemyPiece, float currentX, float currentY, bool isQueenPiece)
         {
             //Debug.Log(GridManager._pieceList);
             var _allowedMoveList = new List<Vector2>();
-            Vector2 currentPiecePos = piece.transform.position;
-            
+            Vector2 currentPiecePos = piece.transform.position;    
 
             for(int i = -1; i < 2; i ++)
             {
@@ -177,16 +183,15 @@ namespace Checkers.controller
                 if(isPlayerPiece) // maybe make seperate function for calculating enemy allowed moves??
                 {
                     move.y = currentPiecePos.y + 1;
-                    move.x = move.x + i;
                 }
                 else
                 {
                     move.y = currentPiecePos.y - 1;
-                    move.x = move.x + i;
                 }
 
+                move.x = move.x + i;
                 // checks if move is actually on a diagonal before considering it a valid move
-                if((Math.Abs(move.x - currentX)) !=  Math.Abs(move.y - currentY))
+                if ((Math.Abs(move.x - currentX)) !=  Math.Abs(move.y - currentY))
                 {
                     continue;
                 }
@@ -204,7 +209,7 @@ namespace Checkers.controller
                     /* Recursion is used here because in checkers, one could theoretically jump over just about every single enemy piece.
                         * making it necessary to call this function over and over in order to find each path out of multiple potential jump paths
                         * the user could decide on. */
-                    CalculateAllowedMoves(jumpSpots.Item2, true, true, currentX, currentY); 
+                    CalculateAllowedMoves(jumpSpots.Item2, true, true, currentX, currentY, isQueenPiece); 
 
                 }
                 else if(jumpSpots.Item3 && !piece.transform.name.Contains("potentialMoveHighlight"))
@@ -219,7 +224,7 @@ namespace Checkers.controller
                     if(hitEnemyPiece)
                     {
                         _pathlist.Add((potentialMoveHighlight, pathnum, counter, piece));
-                        CalculateAllowedMoves(potentialMoveHighlight, true, false, potentialMoveHighlight.transform.position.x, potentialMoveHighlight.transform.position.y);
+                        CalculateAllowedMoves(potentialMoveHighlight, true, false, potentialMoveHighlight.transform.position.x, potentialMoveHighlight.transform.position.y, isQueenPiece);
                     }
                 }
             }
@@ -261,7 +266,7 @@ namespace Checkers.controller
         }
 
 
-        private void CalculateAllowedMovesForEnemyPiece(GameObject piece, bool isPlayerPiece, bool hitEnemyPiece, float currentX, float currentY)
+        private void CalculateAllowedMovesForEnemyPiece(GameObject piece, bool isPlayerPiece, bool hitEnemyPiece, float currentX, float currentY, bool isQueenPiece)
         {
             //Debug.Log(GridManager._pieceList);
             var _allowedMoveList = new List<Vector2>();
@@ -274,13 +279,12 @@ namespace Checkers.controller
                 if (isPlayerPiece) // maybe make seperate function for calculating enemy allowed moves??
                 {
                     move.y = currentPiecePos.y + 1;
-                    move.x = move.x + i;
                 }
                 else
                 {
                     move.y = currentPiecePos.y - 1;
-                    move.x = move.x + i;
                 }
+                move.x = move.x + i;
 
                 // checks if move is actually on a diagonal before considering it a valid move
                 if ((Math.Abs(move.x - currentX)) != Math.Abs(move.y - currentY))
@@ -301,7 +305,7 @@ namespace Checkers.controller
                     /* Recursion is used here because in checkers, one could theoretically jump over just about every single enemy piece.
                         * making it necessary to call this function over and over in order to find each path out of multiple potential jump paths
                         * the user could decide on. */
-                    CalculateAllowedMovesForEnemyPiece(jumpSpots.Item2, false, true, currentX, currentY);
+                    CalculateAllowedMovesForEnemyPiece(jumpSpots.Item2, false, true, currentX, currentY, isQueenPiece);
 
                 }
                 else if (jumpSpots.Item3 && !piece.transform.name.Contains("potentialMoveHighlight"))
@@ -316,7 +320,7 @@ namespace Checkers.controller
                     if (hitEnemyPiece)
                     {
                         _pathlist.Add((potentialMoveHighlight, pathnum, counter, piece));
-                        CalculateAllowedMovesForEnemyPiece(potentialMoveHighlight, false, false, potentialMoveHighlight.transform.position.x, potentialMoveHighlight.transform.position.y);
+                        CalculateAllowedMovesForEnemyPiece(potentialMoveHighlight, false, false, potentialMoveHighlight.transform.position.x, potentialMoveHighlight.transform.position.y, isQueenPiece);
                     }
                 }
             }
