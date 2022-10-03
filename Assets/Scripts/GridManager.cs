@@ -36,6 +36,7 @@ namespace Checkers.grid
              more efficiently */
             string fenString = "P1P1P1P1/1P1P1P1P/P1P1P1P1///1p1p1p1p/p1p1p1p1/1p1p1p1p";
             //string fenString = "P1P1P1P1/1P1P1p1P/P1P3P/3p//1p1p1p1p/2p3p1/1p1p1p1p";
+            //string fenString = "P1P1P1P1/1P1P1p1P/P1P3P/3p/4p/1p1p1p1p/2p1P1p1/3p3p";
 
             _pieceList = new List<GameObject>();
 

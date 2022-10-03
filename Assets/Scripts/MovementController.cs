@@ -7,6 +7,7 @@ using Checkers.grid;
 using Unity.VisualScripting;
 using System.Linq;
 using static System.Diagnostics.Stopwatch;
+using Unity.Burst.CompilerServices;
 
 namespace Checkers.controller
 {
@@ -21,6 +22,8 @@ namespace Checkers.controller
         bool confirmMove = false;
 
         public List<(GameObject obj, int path, int move, GameObject removedPiece)> _pathlist;
+
+        public List<(float x, float y)> _checkedMoves = new List<(float x, float y)>();
 
         private int pathnum = 0;
 
@@ -96,6 +99,7 @@ namespace Checkers.controller
 
         }
 
+
         void Clicked()
         {
             try
@@ -114,32 +118,72 @@ namespace Checkers.controller
 
             if (hit.collider.name == "playerPiece(Clone)" && isBlackTurn)
             {
-                _selectedPiece = hit.collider.transform.gameObject;
-                _selectedPieceHighLight = hit.collider.transform.GetChild(0).gameObject;
-                _selectedPieceHighLight.SetActive(true);
 
-                confirmMove = true;
-                pathnum = 0;
-                var isQueenPiece = false;
-                CalculateAllowedMoves(_selectedPiece, true, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y, isQueenPiece);
-                
+                handleCollider(hit, true);
             }
             else if (hit.collider.name == "enemyPiece(Clone)" && !isBlackTurn)
             {
-                _selectedPiece = hit.collider.transform.gameObject;
-                _selectedPieceHighLight = hit.collider.transform.GetChild(0).gameObject;
-                _selectedPieceHighLight.SetActive(true);
-
-                confirmMove = true;
-                pathnum = 0;
-                var isQueenPiece = false;
-                CalculateAllowedMovesForEnemyPiece(_selectedPiece, false, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y, isQueenPiece);
+                handleCollider(hit, false);
                 
             }
             
         }
 
-        private (bool, GameObject, bool) CheckForJump(Vector2 attemptedMove)
+        void handleCollider(RaycastHit2D hit, bool playerPiece)
+        {
+            _selectedPiece = hit.collider.transform.gameObject; // sets selected piece collider
+            _selectedPieceHighLight = hit.collider.transform.GetChild(0).gameObject;
+            _selectedPieceHighLight.SetActive(true);
+
+
+            // resets allowed moves
+            _checkedMoves.Clear();
+            confirmMove = true;
+            pathnum = 0;
+            if(playerPiece)
+            {
+                var isQueenPiece = false;
+                CalculateAllowedMoves(_selectedPiece, true, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y, isQueenPiece);
+
+                if (_selectedPiece.transform.GetChild(1).gameObject.activeSelf)
+                {
+                    isQueenPiece = true;
+                    CalculateAllowedMoves(_selectedPiece, true, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y, isQueenPiece);
+                }
+            }
+            else
+            {
+                var isQueenPiece = false;
+                CalculateAllowedMovesForEnemyPiece(_selectedPiece, false, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y, isQueenPiece);
+
+                if (_selectedPiece.transform.GetChild(1).gameObject.activeSelf)
+                {
+                    isQueenPiece = true;
+                    CalculateAllowedMovesForEnemyPiece(_selectedPiece, false, false, _selectedPiece.transform.position.x, _selectedPiece.transform.position.y, isQueenPiece);
+                }
+            }
+        }
+
+        bool checkforValidMove(float x, float y, float currentX, float currentY)
+        {
+
+            if (_checkedMoves.Contains((x, y)))
+            {
+                return false;
+            }
+
+            // checks if move is actually on a diagonal before considering it a valid move
+            if ((Math.Abs(x - currentX)) != Math.Abs(y - currentY))
+            {
+                return false;
+            }
+
+            _checkedMoves.Add((x, y));
+
+            return true;
+        }
+
+        private (bool, GameObject, bool) CheckForJump(Vector2 attemptedMove) // valids jump moves for the player pieces
         {
             if(attemptedMove.x >= 8 || attemptedMove.y >= 8)
             {
@@ -175,12 +219,14 @@ namespace Checkers.controller
         {
             //Debug.Log(GridManager._pieceList);
             var _allowedMoveList = new List<Vector2>();
-            Vector2 currentPiecePos = piece.transform.position;    
+            Vector2 currentPiecePos = piece.transform.position;
+            bool hasResetCounter = false;
 
-            for(int i = -1; i < 2; i ++)
+
+            for (int i = -1; i < 2; i ++)
             {
                 Vector2 move = piece.transform.position;
-                if(isPlayerPiece) // maybe make seperate function for calculating enemy allowed moves??
+                if(isPlayerPiece && !hasResetCounter) // maybe make seperate function for calculating enemy allowed moves??
                 {
                     move.y = currentPiecePos.y + 1;
                 }
@@ -189,12 +235,15 @@ namespace Checkers.controller
                     move.y = currentPiecePos.y - 1;
                 }
 
-                move.x = move.x + i;
-                // checks if move is actually on a diagonal before considering it a valid move
-                if ((Math.Abs(move.x - currentX)) !=  Math.Abs(move.y - currentY))
+                move.x = currentPiecePos.x + i;
+
+                if (isQueenPiece && !hasResetCounter && i == 1) // if piece is a queen piece, reset loop to allow for additonal checks for pieces in opposite direction
                 {
-                    continue;
+                    hasResetCounter = true;
+                    i = -2;
                 }
+
+                if(!checkforValidMove(move.x, move.y, currentX, currentY)) { continue; }
 
                 // checks original position compared to current to determine if position is on the same paths on the board
                 if (currentPiecePos.x == _selectedPiece.transform.position.x && currentPiecePos.y == _selectedPiece.transform.position.y) 
@@ -215,6 +264,7 @@ namespace Checkers.controller
                 else if(jumpSpots.Item3 && !piece.transform.name.Contains("potentialMoveHighlight"))
                 {
 
+                    // places green 'highlight' objects on checkers board representing valid moves
                     _allowedMoveList.Add(move);
                     GameObject potentialMoveHighlight = Instantiate(_potentialMoveHighlight, new Vector2(move.x, move.y), Quaternion.identity);
                     potentialMoveHighlight.name = "potentialMoveHighlight" + counter.ToString();
@@ -232,7 +282,7 @@ namespace Checkers.controller
 
 
 
-        private (bool, GameObject, bool) CheckForJumpForEnemyPiece(Vector2 attemptedMove)
+        private (bool, GameObject, bool) CheckForJumpForEnemyPiece(Vector2 attemptedMove) // valids jump moves for the enemy pieces
         {
             if (attemptedMove.x >= 8 || attemptedMove.y >= 8)
             {
@@ -271,26 +321,28 @@ namespace Checkers.controller
             //Debug.Log(GridManager._pieceList);
             var _allowedMoveList = new List<Vector2>();
             Vector2 currentPiecePos = piece.transform.position;
-
+            bool hasResetCounter = false;
 
             for (int i = -1; i < 2; i++)
             {
                 Vector2 move = piece.transform.position;
-                if (isPlayerPiece) // maybe make seperate function for calculating enemy allowed moves??
-                {
-                    move.y = currentPiecePos.y + 1;
-                }
-                else
+                if (!isPlayerPiece && !hasResetCounter) // maybe make seperate function for calculating enemy allowed moves??
                 {
                     move.y = currentPiecePos.y - 1;
                 }
+                else
+                {
+                    move.y = currentPiecePos.y + 1;
+                }
                 move.x = move.x + i;
 
-                // checks if move is actually on a diagonal before considering it a valid move
-                if ((Math.Abs(move.x - currentX)) != Math.Abs(move.y - currentY))
+                if (isQueenPiece && !hasResetCounter && i == 1)
                 {
-                    continue;
+                    hasResetCounter = true;
+                    i = -2;
                 }
+
+                if (!checkforValidMove(move.x, move.y, currentX, currentY)) { continue; }
 
                 // checks original position compared to current to determine if position is on the same paths on the board
                 if (currentPiecePos.x == _selectedPiece.transform.position.x && currentPiecePos.y == _selectedPiece.transform.position.y)
@@ -302,9 +354,6 @@ namespace Checkers.controller
 
                 if (jumpSpots.Item1 && !hitEnemyPiece)
                 {
-                    /* Recursion is used here because in checkers, one could theoretically jump over just about every single enemy piece.
-                        * making it necessary to call this function over and over in order to find each path out of multiple potential jump paths
-                        * the user could decide on. */
                     CalculateAllowedMovesForEnemyPiece(jumpSpots.Item2, false, true, currentX, currentY, isQueenPiece);
 
                 }
@@ -341,7 +390,7 @@ namespace Checkers.controller
         private void removeEnemyPieces(Transform moveName)
         {
 
-            // improvements need to be made to the time complexity of this function, for now it is okay
+            /* Time complexity in this function is not ideal, working on a better solution for the algorithm to decide the correct piece to remove on the same 'path' */
 
             for (int i = 0; i < _pathlist.Count; i++)
             {
@@ -374,72 +423,6 @@ namespace Checkers.controller
                     }
                 }
             }
-
-            /*for (int j = 0; j < _pathlist.Count; j++)
-            {
-                try
-                {
-                    if (moveName.name == _pathlist[j].obj.name)
-                    {
-                        try
-                        {
-                            // if y values are equal choose piece closer to position of move, gross solution but only thing I could come up with for this weird outlier case
-                            if (_pathlist[j + 1].removedPiece.transform.position.y == _pathlist[j].removedPiece.transform.position.y)
-                            {
-                                if (Math.Abs(_pathlist[j].removedPiece.transform.position.x - moveName.position.x) != 1)
-                                {
-                                    Destroy(_pathlist[j + 1].removedPiece);
-                                    continue;
-                                }
-                            }
-                        }
-                        catch (Exception)
-                        {
-                            Destroy(_pathlist[j].removedPiece);
-                        }
-                    }
-                    else if (_pathlist[j + 1].removedPiece.transform.position.y != _pathlist[j].removedPiece.transform.position.y)
-                    {
-                        Destroy(_pathlist[j].removedPiece);
-                    }
-                }
-                catch (Exception)
-                {
-                    Destroy(_pathlist[j - 1].removedPiece);
-                }
-            }*/
-
-            /*for (int j = 0; j < _pathlist.Count; j++)
-            {
-                try
-                {
-                    bool sameY = _pathlist[j + 1].removedPiece.transform.position.y == _pathlist[j].removedPiece.transform.position.y;
-
-                    *//*if (moveName.name == _pathlist[j].obj.name)
-                    {*//*
-                        // if y values are equal choose piece closer to position of move, gross solution but only thing I could come up with for this weird outlier case
-                        if (sameY)
-                        {
-                            if (Math.Abs(_pathlist[j].removedPiece.transform.position.x - moveName.position.x) != 1)
-                            {
-                                Destroy(_pathlist[j+1].removedPiece);
-                                continue;
-                            }
-                        
-                    }
-                    else if (!sameY)
-                    {
-                        Destroy(_pathlist[j].removedPiece);
-                    }
-                }
-                catch (Exception)
-                {
-                    Destroy(_pathlist[j].removedPiece);
-                }
-
-            }*/
-
-
         }
     }
 }
