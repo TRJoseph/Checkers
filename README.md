@@ -10,7 +10,7 @@ This game is currently in development as I am currently a full time student at U
 - Title Menu
 - Turn-Based movement
 - Correct movement functionality that mimics checkers.
-- Queen pieces are created when player reaches the other side of the board
+- King pieces are created when player reaches the other side of the board
 
 ![gameBoard](/Docs/ReadMeImages/gameboardimage1.png)
 
