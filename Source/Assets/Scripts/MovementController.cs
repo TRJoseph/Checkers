@@ -25,10 +25,14 @@ namespace Checkers.controller
 
         public List<(float x, float y)> _checkedMoves = new List<(float x, float y)>();
 
+        public List<Vector2> _allowedMoveList = new List<Vector2>();
+
         private int pathnum = 0;
 
         GameObject _selectedPiece = null;
         GameObject _selectedPieceHighLight = null;
+
+        bool currentlySelected = false;
 
         bool isBlackTurn;
 
@@ -42,17 +46,7 @@ namespace Checkers.controller
         {
             if (Input.GetMouseButtonDown(0))
             {
-                RemovePreviouslyAllowedMoves(); // removes the valid moves and the highlights displaying for them when de-selecting a piece or selecting a new piece
-                _pathlist = new List<(GameObject, int, int, GameObject)>();
                 Clicked();
-            }
-
-            if (Input.GetMouseButtonDown(1) && confirmMove)
-            {
-                Debug.Log("Moved");
-                getMoveSpot();
-                RemovePreviouslyAllowedMoves();
-                _pathlist = new List<(GameObject, int, int, GameObject)>();
             }
         }
 
@@ -93,10 +87,58 @@ namespace Checkers.controller
                 {
                     _selectedPiece.transform.GetChild(1).gameObject.SetActive(true);
                 }
+                RemovePreviouslyAllowedMoves();
+
+                removeEnemyPieces(_selectedMoveLocation);
             }
 
-            removeEnemyPieces(_selectedMoveLocation);
+        }
 
+        private void handleTurns(RaycastHit2D hit)
+        {
+            if (isBlackTurn) // handle black's turn
+            {
+
+                if (currentlySelected)
+                {
+                    getMoveSpot();
+
+                }
+
+                if (hit.collider.name == "playerPiece(Clone)")
+                {
+                    handleCollider(hit, true);
+                    currentlySelected = true;
+                }
+                else
+                {
+                    // removes valid move indicators if the user selects a different piece or tile. Also resets selected status
+                    currentlySelected = false;
+                    _pathlist = new List<(GameObject, int, int, GameObject)>();
+                    RemovePreviouslyAllowedMoves();
+                }
+
+            }
+            else // must be red's turn
+            {
+                if (currentlySelected)
+                {
+                    getMoveSpot();
+
+                }
+
+                if (hit.collider.name == "enemyPiece(Clone)")
+                {
+                    handleCollider(hit, false);
+                    currentlySelected = true;
+                }
+                else
+                {
+                    currentlySelected = false;
+                    _pathlist = new List<(GameObject, int, int, GameObject)>();
+                    RemovePreviouslyAllowedMoves();
+                }
+            }
         }
 
         void Clicked()
@@ -115,19 +157,10 @@ namespace Checkers.controller
 
             RaycastHit2D hit = Physics2D.Raycast(worldPoint, Vector2.zero);
 
-            if (hit.collider.name == "playerPiece(Clone)" && isBlackTurn)
-            {
-
-                handleCollider(hit, true);
-            }
-            else if (hit.collider.name == "enemyPiece(Clone)" && !isBlackTurn)
-            {
-                handleCollider(hit, false);
-                
-            }
+            handleTurns(hit);
             
         }
-
+        
         void handleCollider(RaycastHit2D hit, bool playerPiece)
         {
             _selectedPiece = hit.collider.transform.gameObject; // sets selected piece collider
@@ -215,10 +248,11 @@ namespace Checkers.controller
         }
 
         int counter = 0;
+
         private void CalculateAllowedMoves(GameObject piece, bool isPlayerPiece, bool hitEnemyPiece, float currentX, float currentY, bool isQueenPiece)
         {
             //Debug.Log(GridManager._pieceList);
-            var _allowedMoveList = new List<Vector2>();
+            
             Vector2 currentPiecePos = piece.transform.position;
             bool hasResetCounter = false;
 
@@ -250,6 +284,7 @@ namespace Checkers.controller
                 {
                     pathnum++;
                 }
+
 
                 var jumpSpots = CheckForJump(move);
 
@@ -392,7 +427,7 @@ namespace Checkers.controller
 
             /* Time complexity in this function is not ideal, working on a better solution for the algorithm to decide the correct piece to remove on the same 'path' */
 
-            for (int i = 0; i < _pathlist.Count; i++)
+            /*for (int i = 0; i < _pathlist.Count; i++)
             {
                 if (moveName.name == _pathlist[i].obj.name)
                 {
@@ -403,6 +438,11 @@ namespace Checkers.controller
                         {
                             try
                             {
+                                if (_pathlist[j + 1].removedPiece.transform.position.y == _pathlist[j].removedPiece.transform.position.y &&
+                                    _pathlist[j + 2].removedPiece.transform.position.y == _pathlist[j].removedPiece.transform.position.y)
+                                {
+                                    continue;
+                                }
                                 // if y values are equal choose piece closer to position of move, gross solution but only thing I could come up with for this weird outlier case
                                 if (_pathlist[j + 1].removedPiece.transform.position.y == _pathlist[j].removedPiece.transform.position.y)
                                 {
@@ -422,7 +462,30 @@ namespace Checkers.controller
                         }
                     }
                 }
+            }*/
+
+            try
+            {
+                for (int i = 0; i < _pathlist.Count; i++)
+                {
+                    if (moveName.name == _pathlist[i].obj.name)
+                    {
+                        var chosenMove = _pathlist[i];
+                        for (int j = 0; j < _pathlist.Count; j++)
+                        {
+                            if (_pathlist[j].path == chosenMove.path && chosenMove.move >= _pathlist[j].move) // checks if piece is on same path before removing
+                            {
+                                Destroy(_pathlist[j].removedPiece);
+                            }
+                        }
+                    }
+                }
             }
+            catch (Exception)
+            {
+                return;
+            }
+            
         }
     }
 }
