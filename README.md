@@ -4,7 +4,7 @@ Welcome! This is a repository for my first Unity Project. This game attempts to 
 
 ## In-Progress
 
-This game is currently in development as I am currently a full time student at University making it relatively difficult to find time to pursue my own personal projects.
+This game is currently in development as I am currently a full time student at University.
 
 ## Current Features
 - Title Menu
